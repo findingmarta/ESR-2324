@@ -1,39 +1,36 @@
 import socket
 
-class cliente:
-    def communication():
-        # Inicializa o socket
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+class Cliente:
+    def __init__(self, socket=None):
+        self.socket = socket
 
-        # Converte a query para string para que possa ser enviada
-        mensagem = "Ola"
+    def communication(self):
 
-        while True:
-            # Codifica a mensagem se estiver em modo debug
-            try:
-                mensagem = mensagem.encode('utf-8')
-            except UnicodeEncodeError:
-                print(f"Erro na codificação da query")
+        try:
+            if self.socket is None:
+                self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.socket.connect(("127.0.0.1", 1234))
+                print("connect")
 
-            # A query é enviada para o servidor com o endereço e porta definidos
-            s.sendto(mensagem, ('127.0.0.1', 1234))
-            s.send
-            # O cliente recebe uma resposta do servidor
-            resp, add = s.recvfrom(1024)
+            with self.socket:
+                while True:
+                    msg = "HI"
+                    self.socket.sendall(msg.encode())                    
 
-            # A resposta é descodificada 
-            print(f"Recebi uma resposta do servidor {add}")
-            
-            try:
-                resposta = resp.decode('utf-8')
-                print(resposta)
-            except UnicodeDecodeError:
-                print(f"Erro na descodificação da resposta")
+                    try:
+                        msg = self.socket.recv(256)
+                        infp = msg.decode('utf-8')
+                        print(("127.0.0.1", 1234), infp)
+                    
+                    except:
+                        pass
+
+        except:
+            print('Connection Failed', 'Connection to 127.0.0.1 failed.')
 
 
-
-def main():
-    cliente.communication()
+    def start(self):
+        self.communication()
 
 if __name__ == "__main__":
-    main()
+    Cliente().start()

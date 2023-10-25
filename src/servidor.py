@@ -1,47 +1,48 @@
 import socket
 
-class servidor:
+class Servidor:
     # Inicializa o servidor
     def __init__(self, porta):
         self.porta = porta
 
 
-    # Inicializa a comunicação UDP???????????????????????????????????????????????
-    def communication(self):
+    # Inicializa a comunicação TCP
+    def communication(self):     
         # Inicializa o socket
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         endereco = '127.0.0.1'
         s.bind((endereco, self.porta))
-        print(f"Servidor UDP à escuta no endereço {endereco}:{self.porta}")
+        #s.bind(("", self.porta))
+        s.listen()
+        print(f"Servidor TCP à escuta no endereço {endereco}:{self.porta}")
+
+        connection, address = s.accept()
+
 
         while True:
-            msg, address = s.recvfrom(1024)
-            print(f"Recebi uma mensagem do cliente {address}")
-
-
             try:
+                msg = connection.recv(256)
                 mensagem = msg.decode('utf-8')
+                print(f"Recebi uma mensagem do cliente {address}")
                 print(mensagem)
             except UnicodeDecodeError:
-                print(f"Erro 3: erro na descodificação da mensagem")
-
+                pass
 
             # Transforma a query query em query string
             resp = "Adeus" 
 
             # O servidor tenta codificar a resposta para o cliente
             try:
-                resposta =resp.encode('utf-8')
+                resposta=resp.encode('utf-8')
             except UnicodeEncodeError:
                 print(f"Erro na codificação da resposta")
 
             # O servidor envia a resposta para o cliente
-            s.sendto(resposta, address)
+            connection.sendto(resposta, address)
 
-def main():
-    server = servidor(1234)
-    servidor.communication(server)
+    def start(self):
+        self.communication()
 
-if __name__ == "__main__":
-    main()
+
+Servidor(1234).start()
