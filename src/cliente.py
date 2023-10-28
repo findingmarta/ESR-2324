@@ -9,18 +9,18 @@ class Cliente:
         try:
             if self.socket is None:
                 self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                self.socket.connect(("127.0.0.1", 1234))
+                self.socket.connect(("", ""))
                 print("connect")
 
             with self.socket:
-                while True:
+                #while True:
                     msg = "HI"
                     self.socket.sendall(msg.encode())                    
 
                     try:
                         msg = self.socket.recv(256)
                         infp = msg.decode('utf-8')
-                        print(("127.0.0.1", 1234), infp)
+                        print(("", ""), infp)
                     
                     except:
                         pass

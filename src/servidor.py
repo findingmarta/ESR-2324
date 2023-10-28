@@ -11,11 +11,11 @@ class Servidor:
         # Inicializa o socket
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-        endereco = '127.0.0.1'
-        s.bind((endereco, self.porta))
-        #s.bind(("", self.porta))
+        #endereco = '127.0.0.1'
+        #s.bind((endereco, self.porta))
+        s.bind(("", self.porta))
         s.listen()
-        print(f"Servidor TCP à escuta no endereço {endereco}:{self.porta}")
+        print(f"Servidor TCP à escuta no endereço: {self.porta}")
 
         connection, address = s.accept()
 
