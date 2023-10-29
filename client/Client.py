@@ -5,6 +5,7 @@ root_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
 sys.path.append(root_dir)
 
 from config.util import PORT
+from tkinter import Tk
 
 class Client:
     def __init__(self, ip):
@@ -43,5 +44,25 @@ class Client:
     def start(self):
         self.communication()
 
+
+from Client import Client
+
+
 if __name__ == "__main__":
-    Client(sys.argv[1]).start()
+	try:
+		serverAddr = sys.argv[1]
+		serverPort = sys.argv[2]
+		rtpPort = sys.argv[3]
+		fileName = sys.argv[4]	
+	except:
+		print("[Usage: ClientLauncher.py Server_name Server_port RTP_port Video_file]\n")	
+	
+	root = Tk()
+	
+	# Create a new client
+	app = Client(root, serverAddr, serverPort, rtpPort, fileName)
+	app.master.title("RTPClient")	
+	root.mainloop()
+
+
+    #Client(sys.argv[1]).start()
