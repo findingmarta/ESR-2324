@@ -12,8 +12,11 @@ class RTPPacket:
 		"""Encode the RTP packet with header fields and payload."""
 		timestamp = int(time())
 		header = bytearray(HEADER_SIZE)
+		#-------------
+		# TO COMPLETE
+		#-------------
 		
-		# Fill the header bytearray with RTP header fields
+		# Fill the header bytearray with RTP header fields   <--------------- provavelmente mal
 		header[0] = version
 		header[1] = padding
 		header[2] = extension
