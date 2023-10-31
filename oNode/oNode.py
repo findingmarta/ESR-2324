@@ -79,3 +79,94 @@ if __name__ == "__main__":
         node.run_client()
     else:
         print("Modo inválido. Use 'S' para servidor ou 'C' para cliente.")
+
+
+
+
+
+"""
+import socket, sys, os, json, threading
+
+current_dir = os.path.dirname(os.path.realpath(__file__))
+root_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
+sys.path.append(root_dir)
+
+from config.util import PORT
+
+class oNode:
+
+    def __init__(self, neighbours):
+        self.ip = ''
+        self.neighbours = neighbours
+
+    def createConnections(self):
+        for neigh in self.neighbours:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+            # Conectar-se ao servidor
+            s.connect((neigh, PORT))
+
+            msg = "Olá, mundo!"
+            s.send(msg.encode())
+
+            # Receber uma mensagem do servidor
+            message = s.recv(1024)
+
+            # Manipular a mensagem recebida
+            resposta = message.decode('utf-8')
+            print(resposta)
+
+            # Fechar a conexão com o servidor
+            s.close()
+
+    
+    def acceptConnections(self):
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.bind((self.ip, PORT))
+            s.listen()
+
+            while True:
+                try:
+                    conn, addr = s.accept()
+                    msg = conn.recv(1024)
+                    mensagem = msg.decode('utf-8')
+                    print(f"Recebi uma mensagem do cliente {addr}")
+                    print(mensagem)
+                except UnicodeDecodeError:
+                    #pass
+                    s.close()
+                    conn.close()            
+
+                resp = "Adeus" 
+                
+                # O servidor tenta codificar a resposta para o cliente
+                try:
+                    resposta=resp.encode('utf-8')
+                except UnicodeEncodeError:
+                    print(f"Erro na codificação da resposta")
+                    s.close()
+                    conn.close()
+
+                # O servidor envia a resposta para o cliente
+                conn.sendto(resposta, addr)
+
+        except:
+            pass
+
+    def start(self):
+        self.createConnections()
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Uso: py oNode.py <config_file>")
+        sys.exit(1)
+
+
+    f = open('./config/'+sys.argv[1])
+    neighbours = json.load(f)
+
+    oNode(neighbours['neighbours']).start()
+
+"""
