@@ -15,18 +15,13 @@ class RTPPacket:
 		#-------------
 		# TO COMPLETE
 		#-------------
-		
-		# Fill the header bytearray with RTP header fields   <--------------- provavelmente mal
-		header[0] = version
-		header[1] = padding
-		header[2] = extension
-		header[3] = cc
-		header[4] = seqnum
-		header[5] = marker
-		header[6] = pt
-		header[7] = ssrc
-		header[8] = timestamp
-
+			
+		header = (version << 6) | (padding << 5) | (extension << 4) | cc
+		header |= pt << 8	
+		header |= seqnum << 16
+		header |= marker << 23
+		header |= ssrc << 24
+            
 		# Get the payload from the argument
 		self.payload = payload
 		
