@@ -107,7 +107,7 @@ class Client:
 					
 					currFrameNbr = rtpPacket.seqNum()
 					print("Current Seq Num: " + str(currFrameNbr))
-										
+											
 					if currFrameNbr > self.frameNbr: # Discard the late packet
 						self.frameNbr = currFrameNbr
 						self.updateMovie(self.writeFrame(rtpPacket.getPayload()))
@@ -152,8 +152,10 @@ class Client:
 
 		"""
 		Request Message Format:
-		<type of request>
+
+		<type of request> <filename>
 		<sequence number>
+		<RTP port>
 		"""
 
 
@@ -168,7 +170,7 @@ class Client:
 			self.rtspSeq += 1
 			
 			# Write the RTSP request to be sent.
-			request = f"{self.SETUP} {self.fileName}\n{self.rtspSeq}" 
+			request = f"{self.SETUP} {self.fileName}\n{self.rtspSeq}\n{self.rtpPort}" 
 			
 			# Keep track of the sent request.
 			self.requestSent = self.SETUP
@@ -181,7 +183,7 @@ class Client:
 			print('\nPLAY event\n')
 			
 			# Write the RTSP request to be sent.
-			request = f"{self.PLAY} {self.fileName}\n{self.rtspSeq}" 
+			request = f"{self.PLAY} {self.fileName}\n{self.rtspSeq}\n{self.rtpPort}" 
 			
 			# Keep track of the sent request.
 			self.requestSent = self.PLAY
@@ -194,7 +196,7 @@ class Client:
 			print('\nPAUSE event\n')
 			
 			# Write the RTSP request to be sent.
-			request = f"{self.PAUSE} {self.fileName}\n{self.rtspSeq}" 
+			request = f"{self.PAUSE} {self.fileName}\n{self.rtspSeq}\n{self.rtpPort}" 
 			
 			# Keep track of the sent request.
 			self.requestSent = self.PAUSE
@@ -207,7 +209,7 @@ class Client:
 			print('\nTEARDOWN event\n')
 			
 			# Write the RTSP request to be sent.
-			request = f"{self.TEARDOWN} {self.fileName}\n{self.rtspSeq}" 
+			request = f"{self.TEARDOWN} {self.fileName}\n{self.rtspSeq}\n{self.rtpPort}" 
 			
 			# Keep track of the sent request.
 			self.requestSent = self.TEARDOWN
@@ -224,7 +226,7 @@ class Client:
 		"""Receive RTSP reply from the server."""
 		while True:
 			reply = self.rtspSocket.recv(1024)
-			
+		
 			if reply: 
 				self.parseRtspReply(reply.decode("utf-8"))
 			
@@ -233,9 +235,12 @@ class Client:
 				self.rtspSocket.shutdown(socket.SHUT_RDWR)
 				self.rtspSocket.close()
 				break
-	
+			
+		self.rtpSocket.close()                   # -----------------> Tirar depois
+
 	def parseRtspReply(self, data):
 		"""Parse the RTSP reply from the server."""
+
 		lines = data.split('\n')
 		seqNum = int(lines[1].split(' ')[1])
 		
@@ -289,6 +294,8 @@ class Client:
 		try:
 			# Bind the socket to the address using the RTP port given by the client user
 			self.rtpSocket.bind(("", self.rtpPort))
+			#self.rtpSocket.listen()
+
 			print('\nBind \n')
 		except:
 			tkinter.messagebox.messagebox.showwarning('Unable to Bind', 'Unable to bind PORT=%d' %self.rtpPort)

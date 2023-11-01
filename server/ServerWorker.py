@@ -10,10 +10,10 @@ from RTP.RTPPacket import RTPPacket
 
 class ServerWorker:
 	# Requests
-	SETUP = 'SETUP'
-	PLAY = 'PLAY'
-	PAUSE = 'PAUSE'
-	TEARDOWN = 'TEARDOWN'
+	SETUP = 0
+	PLAY = 1
+	PAUSE = 2
+	TEARDOWN = 3
 	
 	# RTSP State
 	INIT = 0
@@ -47,8 +47,8 @@ class ServerWorker:
 		# Get the request type
 		request = data.split('\n')
 		line1 = request[0].split(' ')
-		requestType = line1[0]
-				
+		requestType = int(line1[0])
+						
 		# Get the media file name
 		filename = line1[1]
 
@@ -65,16 +65,16 @@ class ServerWorker:
 					self.clientInfo['videoStream'] = VideoStream(filename)
 					self.state = self.READY
 				except IOError:
-					self.replyRTSP(self.FILE_NOT_FOUND_404, seq[1])
+					self.replyRTSP(self.FILE_NOT_FOUND_404, seq)
 				
 				# Generate a randomized RTSP session ID
 				self.clientInfo['session'] = randint(100000, 999999)
 				
 				# Send RTSP reply
-				self.replyRTSP(self.OK_200, seq[1])
+				self.replyRTSP(self.OK_200, seq)
 				
 				# Get the RTP/UDP port from the last line
-				self.clientInfo['rtpPort'] = request[2].split(' ')[3]
+				self.clientInfo['rtpPort'] = request[2].split(' ')[0]
 		
 		# Process PLAY request 		
 		elif requestType == self.PLAY:
@@ -84,8 +84,10 @@ class ServerWorker:
 				
 				# Create a new socket for RTP/UDP
 				self.clientInfo["rtpSocket"] = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+				#self.replyRTSP(self.OK_200, seq[1])
 				
-				self.replyRTSP(self.OK_200, seq[1])
+				self.replyRTSP(self.OK_200, seq)
 				
 				# Create a new thread and start sending RTP packets
 				self.clientInfo['event'] = threading.Event()
@@ -100,7 +102,7 @@ class ServerWorker:
 				
 				self.clientInfo['event'].set()
 			
-				self.replyRTSP(self.OK_200, seq[1])
+				self.replyRTSP(self.OK_200, seq)
 		
 		# Process TEARDOWN request
 		elif requestType == self.TEARDOWN:
@@ -108,7 +110,7 @@ class ServerWorker:
 
 			self.clientInfo['event'].set()
 			
-			self.replyRTSP(self.OK_200, seq[1])
+			self.replyRTSP(self.OK_200, seq)
 			
 			# Close the RTP socket
 			self.clientInfo['rtpSocket'].close()
@@ -128,6 +130,7 @@ class ServerWorker:
 				try:
 					address = self.clientInfo['rtspSocket'][1][0]
 					port = int(self.clientInfo['rtpPort'])
+
 					self.clientInfo['rtpSocket'].sendto(self.makeRTP(data, frameNumber),(address,port))
 				except:
 					print("Connection Error")
