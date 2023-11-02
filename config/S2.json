@@ -1,3 +1,5 @@
 {
+    "isServer": true,
+    "port": 3000,
     "neighbours": ["10.0.0.1"]
 }

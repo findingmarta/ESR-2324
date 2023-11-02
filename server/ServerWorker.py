@@ -84,8 +84,6 @@ class ServerWorker:
 				
 				# Create a new socket for RTP/UDP
 				self.clientInfo["rtpSocket"] = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-				#self.replyRTSP(self.OK_200, seq[1])
 				
 				self.replyRTSP(self.OK_200, seq)
 				
