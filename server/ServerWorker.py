@@ -10,10 +10,10 @@ from RTP.RTPPacket import RTPPacket
 
 class ServerWorker:
 	# Requests
-	SETUP = 0
-	PLAY = 1
-	PAUSE = 2
-	TEARDOWN = 3
+	SETUP = "SETUP"
+	PLAY = "PLAY"
+	PAUSE = "PAUSE"
+	TEARDOWN = "TEARDOWN"
 	
 	# RTSP State
 	INIT = 0
@@ -47,7 +47,7 @@ class ServerWorker:
 		# Get the request type
 		request = data.split('\n')
 		line1 = request[0].split(' ')
-		requestType = int(line1[0])
+		requestType = line1[0]
 						
 		# Get the media file name
 		filename = line1[1]
@@ -163,6 +163,12 @@ class ServerWorker:
 		
 		# Error messages
 		elif code == self.FILE_NOT_FOUND_404:
-			print("404 NOT FOUND")
+			print(f"404 NOT FOUND.\n{self.clientInfo}\n")
+			reply = 'RTSP/1.0 404 NOT_FOUND\nCSeq: ' + '\nSession: ' + str(self.clientInfo['session'])
+			conn_socket = (self.clientInfo['rtspSocket'])[0]
+			conn_socket.send(reply.encode())
 		elif code == self.CON_ERR_500:
-			print("500 CONNECTION ERROR")
+			print(f"500 CONNECTION ERROR.\n{self.clientInfo}\n")
+			reply = 'RTSP/1.0 500 CONNECTION_ERROR\nCSeq: ' + '\nSession: ' + str(self.clientInfo['session'])
+			conn_socket = (self.clientInfo['rtspSocket'])[0]
+			conn_socket.send(reply.encode())

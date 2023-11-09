@@ -1,5 +1,6 @@
 {
+    "ipAddress": "10.0.1.10",
     "isServer" : true,
-    "port": 3000,
-    "neighbours": ["10.0.1.1"]
+    "isRP": false,
+    "neighbours":["10.0.0.20"]        
 }

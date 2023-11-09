@@ -15,14 +15,28 @@ class RTPPacket:
 		#-------------
 		# TO COMPLETE
 		#-------------
-			
-		header = (version << 6) | (padding << 5) | (extension << 4) | cc
-		header |= pt << 8	
-		header |= seqnum << 16
-		header |= marker << 23
-		header |= ssrc << 24
-            
-		# Get the payload from the argument
+
+		header[0] = version << 6  					# 2 bits
+		header[0] = padding << 5  	   				# 1 bit
+		header[0] = extension << 4  	   			# 1 bit
+		header[0] = (cc & 0x0F)  		   			# 4 bits
+		header[1] = marker << 7  		   			# 1 bit
+		header[1] = (pt & 0x7f)  		   			# 7 bits
+		header[2] = (seqnum >> 8)                   # 2 bytes 
+		header[3] = (seqnum & 0xFF)                    
+		header[4] = (timestamp >> 24)               # 4 bytes 
+		header[5] = (timestamp >> 16) & 0xFF
+		header[6] = (timestamp >> 8) & 0xFF
+		header[7] = (timestamp & 0xFF)
+		header[8] = (ssrc >> 24)					# 4 bytes
+		header[9] = (ssrc >> 16) & 0xFF
+		header[10] = (ssrc >> 8) & 0xFF
+		header[11] = ssrc & 0xFF
+
+		# Set header
+		self.header = header
+
+		# Set payload
 		self.payload = payload
 		
 	def decode(self, byteStream):

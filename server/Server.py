@@ -1,59 +1,30 @@
-import socket, sys, os, time
+import sys, socket
 
-current_dir = os.path.dirname(os.path.realpath(__file__))
-root_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
-sys.path.append(root_dir)
+from server.ServerWorker import ServerWorker
 
-from config.util import PORT
+MAX_CONN = 5
 
+def main(ipAddress,infoPort,isServer):
+	rtspSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	rtspSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+	rtspSocket.bind((ipAddress, infoPort))
 
-class Server:
-    # Inicializa o servidor
-    def __init__(self, ip):
-        self.ip = ip
+	if isServer:
+		print(f"\nRTSP Server listening at the address {ipAddress}:{infoPort}\n")
+	else:
+		print(f"\nRTSP RP listening at the address {ipAddress}:{infoPort}\n")
 
+	rtspSocket.listen(MAX_CONN)        
 
-    # Inicializa a comunicação TCP
-    def communication(self):     
-        # Inicializa o socket
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	# Receive client info (address,port) through RTSP/TCP session
+	while True:
+		clientInfo = {}
 
-        s.bind((self.ip, PORT))
-        s.listen()
-        print(f"Servidor TCP à escuta no endereço: {self.ip}:{PORT}")
+		try:
+			clientInfo['rtspSocket'] = rtspSocket.accept()
+			ServerWorker(clientInfo).run()		
+		except Exception as e:
+			print(f"Exception: [{e}]\n")
+			break
 
-        connection, address = s.accept()
-
-
-        while True:
-            try:
-                msg = connection.recv(1024)
-                mensagem = msg.decode('utf-8')
-                print(f"Recebi uma mensagem do cliente {address}")
-                print(mensagem)
-            except UnicodeDecodeError:
-                #pass
-                s.close()
-                connection.close()            
-
-            resp = "Adeus" 
-            
-            # O servidor tenta codificar a resposta para o cliente
-            try:
-                resposta=resp.encode('utf-8')
-            except UnicodeEncodeError:
-                print(f"Erro na codificação da resposta")
-                s.close()
-                connection.close()
-
-            # O servidor envia a resposta para o cliente
-            connection.sendto(resposta, address)
-
-        s.close()
-        connection.close()
-
-    def start(self):
-        self.communication()
-
-
-Server(sys.argv[1]).start()
+	rtspSocket.close()

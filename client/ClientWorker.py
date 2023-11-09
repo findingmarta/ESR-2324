@@ -20,25 +20,22 @@ class ClientWorker:
 	state = INIT
 	
 	# Request
-	SETUP = 0
-	PLAY = 1
-	PAUSE = 2
-	TEARDOWN = 3
+	SETUP = "SETUP"
+	PLAY = "PLAY"
+	PAUSE = "PAUSE"
+	TEARDOWN = "TEARDOWN"
 	
 	# Initiation..
-	def __init__(self, master, serveraddr, serverport, rtpport, filename):
-		self.master = master
-		self.master.protocol("WM_DELETE_WINDOW", self.handler)
-		self.createWidgets()
-		self.serverAddr = serveraddr # Endereço do vizinho?
+	def __init__(self, master, neighaddress, serverport, rtpport, filename):
+		self.neighAddress = neighaddress # Endereço do vizinho
 		self.serverPort = int(serverport)
 		self.rtpPort = int(rtpport)
 		self.fileName = filename   # "movie.Mjpeg"
+		self.connectToServer(master)
 		self.rtspSeq = 0
 		self.sessionId = 0
 		self.requestSent = -1
 		self.teardownAcked = 0
-		self.connectToServer()
 		self.frameNbr = 0
 		
 	def createWidgets(self):
@@ -80,8 +77,11 @@ class ClientWorker:
 		"""Teardown button handler."""
 		self.sendRtspRequest(self.TEARDOWN)		
 		self.master.destroy() # Close the gui window
-		os.remove(CACHE_FILE_NAME + str(self.sessionId) + CACHE_FILE_EXT) # Delete the cache image from video
-
+		try:
+			os.remove(CACHE_FILE_NAME + str(self.sessionId) + CACHE_FILE_EXT) # Delete the cache image from video
+		except:
+			pass
+		
 	def pauseMovie(self):
 		"""Pause button handler."""
 		if self.state == self.PLAYING:
@@ -137,14 +137,19 @@ class ClientWorker:
 		self.label.configure(image = photo, height=288) 
 		self.label.image = photo
 		
-	def connectToServer(self):
+	def connectToServer(self,master):
 		"""Connect to the Server. Start a new RTSP/TCP session."""
 		self.rtspSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		try:
-			self.rtspSocket.connect((self.serverAddr, self.serverPort))
+			self.rtspSocket.connect((self.neighAddress, self.serverPort))
+			self.master = master
+			self.master.protocol("WM_DELETE_WINDOW", self.handler)
+			self.createWidgets()
 		except:
-			tkinter.messagebox.showwarning('Connection Failed', 'Connection to \'%s\' failed.' %self.serverAddr)
-	
+			tkinter.messagebox.showwarning('Connection Failed', 'Connection to \'%s\' failed.' %self.neighAddress)
+			print('Connection to \'%s\' failed.' %self.neighAddress)
+			print("----------------------------------")
+
 	def sendRtspRequest(self, requestCode):
 		"""Send RTSP request to the server."""	
 		
@@ -161,9 +166,6 @@ class ClientWorker:
 		# Setup request
 		if requestCode == self.SETUP and self.state == self.INIT:
 			threading.Thread(target=self.recvRtspReply).start()
-			#-------------
-			# TO COMPLETE
-			#-------------
 			
 			# Update RTSP sequence number.
 			self.rtspSeq += 1
@@ -216,7 +218,7 @@ class ClientWorker:
 			return
 		
 		# Send the RTSP request using rtspSocket.
-		destAddr = (self.serverAddr, self.serverPort)
+		destAddr = (self.neighAddress, self.serverPort)
 		self.rtspSocket.sendto(request.encode('utf-8'), destAddr)
 		
 		print('\nData sent:\n' + request)
@@ -253,9 +255,6 @@ class ClientWorker:
 			if self.sessionId == session:
 				if int(lines[0].split(' ')[1]) == 200: 
 					if self.requestSent == self.SETUP:
-						#-------------
-						# TO COMPLETE
-						#-------------
 						# Update RTSP state.
 						self.state = self.READY
 						
@@ -280,9 +279,7 @@ class ClientWorker:
 	
 	def openRtpPort(self):
 		"""Open RTP socket binded to a specified port."""
-		#-------------
-		# TO COMPLETE
-		#-------------
+
 		# Create a new datagram socket to receive RTP packets from the server
 		self.rtpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
