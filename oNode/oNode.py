@@ -27,140 +27,159 @@ Estrutura da mensagem a ser enviada por flooding:
 <servidores mais próximos>
 """
 
-MAX_HOPS = 10
+
+
+if len(sys.argv) != 2:
+    print("Usage: py oNode/oNode.py <config_file>")
+    sys.exit(1)
+
+# Open the node's configuration file
+f = open('./config/'+sys.argv[1])
+data = json.load(f)
+
+# Variables
+ipAddress = data['ipAddress'] 
+isServer = data['isServer']
+isRP = data['isRP']
+neighbours = data['neighbours']
+filename = "movie.Mjpeg"
 
 # Estrutura da mensagem de prova
-class Message:
-    date_format = '%d-%m-%Y %H:%M:%S.%f'
+date_format = '%d-%m-%Y %H:%M:%S.%f'
 
-    def __init__(self,ipAddress,isServer,isRP,neighbours,hops,time,lastRefresh,rankServers):
-        self.ipAddress = ipAddress
-        self.isServer = isServer
-        self.isRP = isRP
-        self.neighbours = neighbours
-        self.hops = hops
-        self.time = time
-        self.lastRefresh
-        self.rankServers = rankServers
+# Create the message to send to active nodes
+message = {
+    "ipAddress": ipAddress,
+    "isServer": isServer,
+    "isRP": isRP,
+    "neighbours": neighbours,
+    "time": [datetime.now(), timedelta(days=0, hours=0, seconds=0)],
+    "lastRefresh": datetime.now(),
+    "rankServers": []
+}
 
-    def to_json(message):
-        # Converte os atributos do objeto em um dicionário
-        message_dict = {
-            "ipAddress": message.ipAddress,
-            "isServer": message.isServer,
-            "isRP": message.isRP,
-            "neighbours": message.neighbours,
-            "hops": message.hops,
-            "time": [message.time[0].strftime(message.date_format), message.time[1].total_seconds()],
-            "rankServers": message.rankServers
-        }
-        return json.dumps(message_dict)
+def to_json(message):
+    # Converte os atributos do objeto em um dicionário
+    message_dict = {
+        "ipAddress": message.ipAddress,
+        "isServer": message.isServer,
+        "isRP": message.isRP,
+        "neighbours": message.neighbours,
+        "time": [message.time[0].strftime(message.date_format), message.time[1].total_seconds()],
+        "lastRefresh": message.lastRefresh.strftime(message.date_format),
+        "rankServers": message.rankServers
+    }
+    return json.dumps(message_dict)
 
-    @classmethod
-    def from_dict(cls,message):
-        time = [datetime.strptime(message["time"][0], cls.date_format), timedelta(seconds=message["time"][1])]
-        lastRefresh = datetime.strptime(message["lastRefresh"][0], cls.date_format)
-        return cls(message["ipAddress"], message["isServer"], message["isRP"], message["neighbours"], message["hops"], time, lastRefresh, message["rankServers"])
+def from_dict(cls,message):
+    time = [datetime.strptime(message["time"][0], cls.date_format), timedelta(seconds=message["time"][1])]
+    lastRefresh = datetime.strptime(message["lastRefresh"], cls.date_format)
+    return cls(message["ipAddress"], message["isServer"], message["isRP"], message["neighbours"], time, lastRefresh, message["rankServers"])
 
-    def listenMessage(self,sock):
-        print(f"\n[Flooding socket listening at the address {self.ipAddress}:{FLOODING_PORT}]\n")
 
-        while True:
-            data = sock.recv(1024)
-            m = json.loads(data)
-            message = self.from_dict(m)
+# ----------------------------------------------------------------------------------------
 
-            print(f"[{self.ipAddress}:{FLOODING_PORT}] recieved: \n{m}.\n")
 
-            if message.hops >= MAX_HOPS:
-                print("\nReached the max number of hops!")
-                break
-            
-            #tempo_str = message.time[0]
-            #refresh_str = message['last_refresh']
-            #message.time[0] = datetime.strptime(tempo_str.replace('T', ' '), self.date_format)
-            #message['last_refresh'] = datetime.strptime(refresh_str.replace('T', ' '), self.date_format)
+def updateMessage(messageReceived):
+    # Se o nodo atual for um servidor não interessa atualizar a lista de servidores mais próximos
+    # porque ele vai comunicar apenas com o RP
+    if isServer:
+        return
 
-            response_time = datetime.now() - message.time[0]
-            message.time[1] = response_time
 
-                       
+    # Adiciona o servidor mais próximo
+    if messageReceived.time[1] < message.time[1]:
+        message.rankServers.insert(0,message.ipAddress)
+    # Se o tempo for igual adicionamos o servidor com menor número de saltos
 
-            #
-            self.flood(sock,message)
+    message.lastRefresh = datetime.now()
+    
+def listenMessage(sock):
+    print(f"\n[Flooding socket listening at the address {ipAddress}:{FLOODING_PORT}]\n")
 
-        sock.close()
+    while True:
+        data = sock.recv(1024)
+        m = json.loads(data)
+        messageReceived = from_dict(m)
 
-    # Sends a message to a server
-    def send_message(self,sock,server_ip,message):
-        # Converts the message to a json format
-        m = message.to_json()      
+        print(f"[{ipAddress}:{FLOODING_PORT}] recieved: \n{m}.\n")
 
-        # Sends the message
-        sock.sendto(m.encode(), (server_ip, FLOODING_PORT))
 
-    # Flooding
-    def flood(self,sock,message):
-        for server_ip in message.neighbours:
-            print(f"\n[{message.ipAddress} sent a message to {server_ip}:{FLOODING_PORT}]\n")
-            self.send_message(sock,server_ip,message)
-        #m = self.to_json
-        #print(f"AA {self.to_json(message)}")
-        print(f"Message:\n{message.to_json()}\n\n")
-        print("----------------------------------------------------------------------------")
+        response_time = datetime.now() - messageReceived.time[0]
+        messageReceived.time[1] = response_time
 
-    # 
-    def refresh(self,sock,message):
-        # First flooding process
-        self.flood(sock,message)
+        updateMessage(messageReceived)
 
-        # Every 30 seconds a new flooding process starts with updated message
-        while True:
-            #print(f"local info:\n{json.dumps(message['rankServers'], indent=4)}\n\n")
-            time.sleep(30)
-            #self.refreshMessage()
-            message.flood(sock,message)
+        # Floods the updated message
+        flood(sock,messageReceived)
 
-    def refreshMessage():
-        print("A")
-
-    def handler(message):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.bind((message.ipAddress, FLOODING_PORT))
-
-        send = threading.Thread(target=message.refresh, args=(sock,message))
-        receive = threading.Thread(target=message.listenMessage, args=(sock,))
-
-        receive.start()
-        send.start()
-
-        receive.join()
-        send.join()
+    sock.close()
 
 
 
-if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: py oNode/oNode.py <config_file>")
-        sys.exit(1)
 
-    # Open the node's configuration file
-    f = open('./config/'+sys.argv[1])
-    data = json.load(f)
 
-    # Variables
-    ipAddress = data['ipAddress'] 
-    isServer = data['isServer']
-    isRP = data['isRP']
-    neighbours = data['neighbours']
-    filename = "movie.Mjpeg" 
 
-    # Create the message to send to active nodes
-    message = Message(ipAddress, isServer, isRP, neighbours, hops=0, time=[datetime.now(), timedelta(days=0, hours=0, seconds=0)], lastRefresh=datetime.now(),rankServers=[])
+
+
+# ----------------------------------------------------------------------------------------
+
+# Sends a message to a server
+def send_message(sock,neighAddress,message):
+    # Converts the message to a json format
+    m = message.to_json()      
+
+    # Sends the message
+    sock.sendto(m.encode(), (neighAddress, FLOODING_PORT))
+
+# Flooding
+def flood(sock,m):
+    for neighAddress in m.neighbours:
+        print(f"\n[{ipAddress} sent a message to {neighAddress}:{FLOODING_PORT}]\n")
+        send_message(sock,neighAddress,m)
+    #m = to_json
+    #print(f"AA {to_json(message)}")
+    print(f"Message:\n{m.to_json()}\n\n")
+    print("----------------------------------------------------------------------------")
+
+# Every 60 seconds a new flooding process starts with updated message 
+def refreshMessage(sock):
+    # First flooding process
+    flood(sock,message)
+
+    while True:
+        print(f"local info:\n{json.dumps(message['rankServers'], indent=4)}\n\n")
+        
+        time.sleep(60)
+        
+        print(f"[{ipAddress} is refreshing the flooding process.]\n")
+        message.time[0] = datetime.now()
+        message.lastRefresh = datetime.now()
+        flood(sock,message)
+
+
+#
+def handler(message):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.bind((message.ipAddress, FLOODING_PORT))
+
+    send = threading.Thread(target=refreshMessage, args=(sock,))
+    receive = threading.Thread(target=listenMessage, args=(sock,))
+
+    receive.start()
+    send.start()
+
+    receive.join()
+    send.join()
+
+
+
+
+
 
     # Starts the flooding process
-    Message.handler(message)
+    handler(message)
 
 
     #lock = threading.Lock()
