@@ -1,6 +1,7 @@
 {
-    "ipAddress": "10.0.4.20",
+    "ipAddress": "10.0.18.21",
     "isServer" : false,
     "isRP": false,
-    "neighbours": ["10.0.0.20"]
+    "isBigNode": false,
+    "neighbours": ["10.0.23.20"] 
 }

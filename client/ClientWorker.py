@@ -1,7 +1,10 @@
+from time import sleep
 from tkinter import *
 import tkinter.messagebox
 from PIL import Image, ImageTk
-import socket, threading, sys, traceback, os
+import socket, threading, sys, os
+from RTP.VideoStream import VideoStream 
+
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 root_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
@@ -26,18 +29,21 @@ class ClientWorker:
 	TEARDOWN = "TEARDOWN"
 	
 	# Initiation..
-	def __init__(self, master, neighaddress, serverport, rtpport, filename):
-		self.neighAddress = neighaddress # Endereço do vizinho
+	def __init__(self, master, neighaddress, serverport, rtpport, filename, rankServers,isRP):
+		self.neighAddress = neighaddress # Endereço do vizinho mais próximo
+		self.isRP = isRP
 		self.serverPort = int(serverport)
 		self.rtpPort = int(rtpport)
 		self.fileName = filename   # "movie.Mjpeg"
-		self.connectToServer(master)
+		self.connectToServer(master,change=False)
 		self.rtspSeq = 0
 		self.sessionId = 0
 		self.requestSent = -1
 		self.teardownAcked = 0
 		self.frameNbr = 0
-		
+		self.rankServers = rankServers
+
+
 	def createWidgets(self):
 		"""Build GUI."""
 		# Create Setup button
@@ -77,6 +83,7 @@ class ClientWorker:
 		"""Teardown button handler."""
 		self.sendRtspRequest(self.TEARDOWN)		
 		self.master.destroy() # Close the gui window
+		#self.rtpSocket.close()
 		try:
 			os.remove(CACHE_FILE_NAME + str(self.sessionId) + CACHE_FILE_EXT) # Delete the cache image from video
 		except:
@@ -137,14 +144,42 @@ class ClientWorker:
 		self.label.configure(image = photo, height=288) 
 		self.label.image = photo
 		
-	def connectToServer(self,master):
+	def nextServer(self):
+		# Get the index of the current server ip address
+		for ip,_,_,_,server_path in self.rankServers:
+			if ip != self.neighAddress and server_path:
+				self.neighAddress = ip
+				break 
+
+	def recvChangeStreamRequest(self):
+		print("Client waiting for Change Stream Request\n")
+		while True:
+			reply = self.rtspSocket.recv(1024)
+		
+			if reply == b'Change Stream':
+				self.nextServer()
+
+				self.rtspSocket.close()
+				print("Changing to server: ", self.neighAddress)
+				sleep(10)
+				self.connectToServer(self.master,change=True)
+				break
+
+	def connectToServer(self,master,change):
 		"""Connect to the Server. Start a new RTSP/TCP session."""
 		self.rtspSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		
 		try:
 			self.rtspSocket.connect((self.neighAddress, self.serverPort))
-			self.master = master
-			self.master.protocol("WM_DELETE_WINDOW", self.handler)
-			self.createWidgets()
+
+			if not change:
+				self.master = master
+				self.master.protocol("WM_DELETE_WINDOW", self.handler)
+				self.createWidgets()			
+
+			if self.isRP:
+				threading.Thread(target=self.recvChangeStreamRequest).start()
+
 		except:
 			tkinter.messagebox.showwarning('Connection Failed', 'Connection to \'%s\' failed.' %self.neighAddress)
 			print('Connection to \'%s\' failed.' %self.neighAddress)
@@ -161,7 +196,6 @@ class ClientWorker:
 		<sequence number>
 		<RTP port>
 		"""
-
 
 		# Setup request
 		if requestCode == self.SETUP and self.state == self.INIT:
@@ -229,14 +263,26 @@ class ClientWorker:
 			reply = self.rtspSocket.recv(1024)
 		
 			if reply: 
-				self.parseRtspReply(reply.decode("utf-8"))
+					self.parseRtspReply(reply.decode("utf-8"))
 			
 			# Close the RTSP socket upon requesting Teardown
 			if self.requestSent == self.TEARDOWN:
 				self.rtspSocket.shutdown(socket.SHUT_RDWR)
 				self.rtspSocket.close()
+				break	
+
+	def nextNode(self):		
+		# Get the index of the current server ip address
+		for i, ip_time in enumerate(self.rankServers):
+			if ip_time[0] == self.neighAddress:
+				index = i
 				break
-			
+		
+		# Get the server ip address at the index
+		if index == len(self.rankServers) - 1:
+			return None
+		else:
+			return self.rankServers[index+1][0]
 
 	def parseRtspReply(self, data):
 		"""Parse the RTSP reply from the server."""
@@ -244,6 +290,17 @@ class ClientWorker:
 		lines = data.split('\n')
 		seqNum = int(lines[1].split(' ')[1])
 		
+		code = int(lines[0].split(' ')[1])
+
+		# In case an error occurs, the client tries to get the video from the next server
+		if code == 404 or code == 500:
+			next = self.nextNode()
+
+			if next != None:
+				self.neighAddress = next
+			else:
+				print("Video not available in any server...")
+
 		# Process only if the server reply's sequence number is the same as the request's
 		if seqNum == self.rtspSeq:
 			session = int(lines[2].split(' ')[1])
@@ -253,7 +310,7 @@ class ClientWorker:
 			
 			# Process only if the session ID is the same
 			if self.sessionId == session:
-				if int(lines[0].split(' ')[1]) == 200: 
+				if code == 200: 
 					if self.requestSent == self.SETUP:
 						# Update RTSP state.
 						self.state = self.READY

@@ -1,11 +1,13 @@
+import pickle
 class VideoStream:
-	def __init__(self, filename):
+	def __init__(self, filename, ipAddress):
+		self.frameNum = 0
+		self.ipAddress = ipAddress
 		self.filename = filename
 		try:
 			self.file = open(filename, 'rb')
 		except:
 			raise IOError
-		self.frameNum = 0
 		
 	def nextFrame(self):
 		"""Get next frame."""
@@ -22,4 +24,23 @@ class VideoStream:
 		"""Get frame number."""
 		return self.frameNum
 	
-	
+	def restart(self):
+		"""Restart the video."""
+		self.file.close()
+
+		try:
+			self.file = open(self.filename, 'rb')
+		except:
+			raise IOError
+		self.frameNum = 0
+		
+	def serialize(self):
+		dict = {'frameNum': self.frameNum, 'filename': self.filename, 'ipAddress': self.ipAddress}
+		return pickle.dumps(dict)
+
+	def deserialize(data):
+		obj = pickle.loads(data)
+
+		video_stream = VideoStream(obj['filename'],obj['ipAddress'])
+		video_stream.frameNum = obj['frameNum']
+		return video_stream
