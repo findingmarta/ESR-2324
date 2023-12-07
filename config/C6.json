@@ -3,5 +3,5 @@
     "isServer" : false,
     "isRP": false,
     "isBigNode": true,
-    "neighbours": ["10.0.16.10","10.0.23.20"] 
+    "neighbours": ["10.0.16.10","10.0.23.20","10.0.25.20"] 
 }

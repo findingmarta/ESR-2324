@@ -104,18 +104,18 @@ def updateRank(messageReceived):
         if not messageReceived['isServer'] and not messageReceived['isRP'] and not messageReceived['isBigNode']:
             return
 
-
     #-------------------------------------------------------------------------------------------------
     # Update Loss %
-
-    #n_sent = message["sentTo"][messageReceived["ipAddress"]]
-    #n_received = message["receivedFrom"][messageReceived["ipAddress"]]
-    #print(n_received,n_sent)
-    #loss = round(1-(n_received/n_sent), 2)
-    server_path = False
     loss = 0
-
+    if ipAddress in messageReceived["sentTo"].keys():
+        n_sent = messageReceived["sentTo"][ipAddress]
+        n_received = message["receivedFrom"][messageReceived["ipAddress"]]
+        loss = round(1-(n_received/n_sent), 2)
+        #print(n_received/n_sent)
     #-------------------------------------------------------------------------------------------------
+
+    server_path = False
+
 
     # Verificar se o nodo a ser inserido já existe na lista
     ip_exists = any(messageReceived["ipAddress"] in sublist for sublist in message["rankServers"]) 
@@ -219,13 +219,13 @@ def flood(sock):
             send_message(sock,neighAddress)
 
 
-# Every 10 seconds a new flooding process starts with updated message 
+# Every 15 seconds a new flooding process starts with updated message 
 def refreshMessage(sock):
     # First flooding process
     flood(sock)
 
     while True:        
-        time.sleep(10)
+        time.sleep(15)
         
         logging.info(f"[{ipAddress} is REFRESHING the flooding process.]\n")
         message["time"][0] = datetime.now()

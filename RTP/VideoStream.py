@@ -24,6 +24,14 @@ class VideoStream:
 		"""Get frame number."""
 		return self.frameNum
 	
+	def getFrameNbr(self):
+		"""Get frame number."""
+		return self.frameNum
+
+	def setFrameNbr(self, frameNum):
+		"""Set frame number."""
+		self.frameNum = frameNum
+
 	def restart(self):
 		"""Restart the video."""
 		self.file.close()

@@ -49,7 +49,6 @@ class ServerWorker:
 		streamSocket.connect((self.ip_neigh, 6000))
 		print(f"\nStream socket connecting to {self.ip_neigh}:6000\n")
 
-
 		while len(self.nodesInterested) != 0:
 			print("\nServer's Rank: " + str(self.rankServers))
 
@@ -66,7 +65,7 @@ class ServerWorker:
 						
 						self.changeStream(streamSocket)
 					
-						sleep(15)
+						sleep(30)
 
 						# Receive the new stream
 						streamSocket.close()
@@ -106,8 +105,6 @@ class ServerWorker:
 	def listeningStreamRequest(self):	
 		streamSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		streamSocket.bind((self.ipAddress, 6000))
-
-		print(f"LISTEN {streamSocket}")
 
 		print(f"\nStream socket listening at {self.ipAddress}:6000\n")
 		
@@ -207,7 +204,7 @@ class ServerWorker:
 				print("processing SETUP\n")   
 
 				try:
-					#clientInfo['videostream'] = self.videostream 
+					clientInfo['videostream'] = self.videostream 
 					clientInfo['state']= self.READY
 				except IOError:
 					self.replyRTSP(self.FILE_NOT_FOUND_404, seq, clientInfo)
@@ -274,9 +271,9 @@ class ServerWorker:
 			if clientInfo['event'].isSet(): 
 				break 
 				
-			data = self.videostream.nextFrame()
+			data = clientInfo['videostream'].nextFrame()
 			if data: 
-				frameNumber = self.videostream.frameNbr()
+				frameNumber = clientInfo['videostream'].frameNbr()
 				try:
 					address = clientInfo['rtspSocket'][1][0]
 					port = int(clientInfo['rtpPort'])

@@ -29,14 +29,13 @@ def main(ipAddress,infoPort,isServer,isRP,rankServers,videostream):
 		
 		try:
 			clientInfo['rtspSocket'] = rtspSocket.accept()
-			
+
 			nodesInterested.append(clientInfo)
+
+			if (isRP and len(nodesInterested) == 2) or (ipAddress == '10.0.25.20' and len(nodesInterested) == 2) or (not isRP and ipAddress != '10.0.25.20'):
+				ServerWorker(isRP,rankServers,nodesInterested,videostream,ipAddress).run()
 			
-			#while isRP and len(nodesInterested) != 2:
-				#sleep(1)
-			
-			ServerWorker(isRP,rankServers,nodesInterested,videostream,ipAddress).run()	
-		
+
 		except Exception as e:
 			print(f"[{e}]")
 			break

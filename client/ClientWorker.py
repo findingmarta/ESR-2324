@@ -346,9 +346,10 @@ class ClientWorker:
 		try:
 			# Bind the socket to the address using the RTP port given by the client user
 			self.rtpSocket.bind(("", self.rtpPort))
-			#self.rtpSocket.listen()
 
 			print('\nBind \n')
+		except TimeoutError:
+			print("Closing RTP socket...")
 		except:
 			tkinter.messagebox.showwarning('Unable to Bind', 'Unable to bind PORT=%d' %self.rtpPort)
 
