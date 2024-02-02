@@ -6,7 +6,6 @@ Trabalho prático realizado no âmbito da cadeira Engenharia de Serviços em Red
 | Número  | Nome                                               |
 | ------- | -------------------------------------------------- |
 | A97040  | [Inês Ferreira](https://github.com/inesferreira18) |
-| A95458  | Inês Castro                                        |
 | A97158  | [Marta Sá](https://github.com/findingmarta)        |
 | A97642  | [José Ferreira](https://github.com/rafa2002)       |
 
